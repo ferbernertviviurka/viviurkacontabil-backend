@@ -53,14 +53,21 @@ WORKDIR /var/www/html
 # Copy composer files first for better layer caching
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Install PHP dependencies without scripts (scripts need app files)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
 # Copy entrypoint script (needed in production stage)
 COPY docker/entrypoint.sh /tmp/entrypoint.sh
 
 # Copy application files
 COPY . .
+
+# Now run composer scripts (package:discover, etc.) after files are copied
+# First regenerate autoload files
+RUN composer dump-autoload --optimize --no-interaction --classmap-authoritative || true
+
+# Then run package discovery (needs app files)
+RUN php artisan package:discover --ansi || true
 
 # Create necessary directories
 RUN mkdir -p storage/app/public \
@@ -100,8 +107,14 @@ CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 # Development stage
 FROM base AS development
 
-# Install development dependencies
-RUN composer install --optimize-autoloader --no-interaction --prefer-dist
+# Install development dependencies (no-scripts is already handled in base stage)
+RUN composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts
+
+# Regenerate autoload files with dev dependencies
+RUN composer dump-autoload --optimize --no-interaction || true
+
+# Run package discovery (needs app files)
+RUN php artisan package:discover --ansi || true
 
 # Install Node.js dependencies
 RUN npm install
