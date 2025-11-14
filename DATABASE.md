@@ -6,11 +6,12 @@
 
 ## 📊 Informações Gerais
 
-- **Tipo:** SQLite 3.51.0
-- **Arquivo:** `database/database.sqlite`
-- **Tamanho:** 152KB
-- **Total de Tabelas:** 18
+- **Tipo:** PostgreSQL 16
+- **Host:** Configurado via variável de ambiente `DB_HOST`
+- **Porta:** 5432 (padrão)
+- **Database:** `viviurka_contabil` (configurável via `DB_DATABASE`)
 - **Charset:** UTF-8
+- **SSL Mode:** `prefer` (configurável via `DB_SSLMODE`)
 
 ---
 
@@ -36,59 +37,77 @@
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único da empresa |
-| name | string | Razão social |
+| uuid | uuid | UUID único da empresa |
+| razao_social | string | Razão social |
+| nome_fantasia | string | Nome fantasia |
 | cnpj | string | CNPJ (único) |
 | email | string | Email da empresa |
-| phone | string | Telefone |
-| address | text | Endereço completo |
-| status | enum | 'active' ou 'inactive' |
+| telefone | string | Telefone |
+| whatsapp | string | WhatsApp |
+| cep | string | CEP |
+| endereco | string | Endereço completo |
+| cidade | string | Cidade |
+| estado | string | Estado |
+| ativo | boolean | Status da empresa |
+| responsavel_financeiro_nome | string | Nome do responsável financeiro |
+| responsavel_financeiro_email | string | Email do responsável financeiro |
+| responsavel_financeiro_telefone | string | Telefone do responsável financeiro |
+| responsavel_financeiro_whatsapp | string | WhatsApp do responsável financeiro |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 | deleted_at | timestamp | Soft delete |
 
 ### 📄 Tabela: `invoices`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único da nota fiscal |
 | company_id | integer | ID da empresa emissora |
-| number | string | Número da NFS-e |
-| amount | decimal | Valor total |
-| description | text | Descrição dos serviços |
+| numero | string | Número da NFS-e |
+| valor | decimal | Valor total |
+| descricao | text | Descrição dos serviços |
 | items | json | Array de itens |
-| status | enum | 'pending', 'issued', 'cancelled' |
+| status | enum | 'pending', 'emitida', 'cancelada' |
 | provider_id | string | ID no provedor externo |
-| issued_at | timestamp | Data de emissão |
+| emitted_at | timestamp | Data de emissão |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 | deleted_at | timestamp | Soft delete |
 
 ### 💰 Tabela: `boletos`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
-| id | integer | ID único do boleto |
+| id | integer | ID único do boleto/cobrança |
 | company_id | integer | ID da empresa |
-| amount | decimal | Valor do boleto |
-| due_date | date | Data de vencimento |
-| status | enum | 'pending', 'paid', 'cancelled' |
-| barcode | string | Código de barras |
+| tipo_pagamento | enum | 'boleto', 'pix', 'credit_card' |
+| valor | decimal | Valor da cobrança |
+| vencimento | date | Data de vencimento |
+| status | enum | 'pending', 'paid', 'overdue', 'cancelled' |
+| descricao | text | Descrição da cobrança |
 | provider_id | string | ID no provedor externo |
-| paid_at | timestamp | Data de pagamento |
+| chave_pix | string | Chave PIX (se PIX) |
+| qr_code_pix | text | QR Code PIX (base64) |
+| link_pagamento | string | Link de pagamento (se cartão) |
+| url_pdf | string | URL do boleto PDF |
+| linha_digitavel | string | Linha digitável do boleto |
+| codigo_barras | string | Código de barras |
+| dados_pagamento | json | Dados adicionais de pagamento |
+| data_pagamento | timestamp | Data de pagamento |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 | deleted_at | timestamp | Soft delete |
 
 ### 💳 Tabela: `payment_methods`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único |
 | company_id | integer | ID da empresa |
-| type | enum | 'credit_card', 'boleto' |
+| type | enum | 'credit_card', 'boleto', 'pix' |
 | status | enum | 'active', 'inactive' |
 | provider_id | string | ID no provedor |
 | card_last_digits | string | Últimos 4 dígitos do cartão |
@@ -97,52 +116,65 @@
 | deleted_at | timestamp | Soft delete |
 
 ### 🔄 Tabela: `subscriptions`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único |
 | company_id | integer | ID da empresa |
+| subscription_plan_id | integer | ID do plano de assinatura |
 | payment_method_id | integer | ID do método de pagamento |
-| amount | decimal | Valor da assinatura |
-| frequency | enum | 'monthly', 'quarterly', 'yearly' |
+| valor | decimal | Valor da assinatura |
+| frequencia | enum | 'monthly', 'quarterly', 'yearly' |
 | status | enum | 'active', 'cancelled', 'suspended' |
-| next_charge_at | timestamp | Próxima cobrança |
+| cnae_principal_id | integer | ID do CNAE principal |
+| data_inicio | date | Data de início |
+| data_fim | date | Data de término |
+| proxima_cobranca | date | Próxima cobrança |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 | deleted_at | timestamp | Soft delete |
 
 ### 📁 Tabela: `documents`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único |
 | company_id | integer | ID da empresa |
 | user_id | integer | ID do usuário que fez upload |
-| name | string | Nome do arquivo |
-| type | string | Tipo do documento |
-| path | string | Caminho do arquivo |
-| size | integer | Tamanho em bytes |
+| categoria | enum | Tipo do documento |
+| nome_original | string | Nome original do arquivo |
+| caminho | string | Caminho do arquivo |
+| tamanho | integer | Tamanho em bytes |
+| tipo_mime | string | Tipo MIME do arquivo |
+| documento_chave | boolean | Se é documento chave |
 | created_at | timestamp | Data de upload |
 | updated_at | timestamp | Data de atualização |
 | deleted_at | timestamp | Soft delete |
 
 ### 🤖 Tabela: `ai_requests`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | integer | ID único |
 | user_id | integer | ID do usuário |
-| type | enum | 'summarize', 'email', 'suggestion' |
+| conversation_uuid | uuid | UUID da conversa |
+| tipo | enum | 'chat', 'summarize', 'email' |
 | prompt | text | Prompt enviado |
 | response | text | Resposta da IA |
+| tokens_used | integer | Tokens utilizados |
+| model | string | Modelo usado |
+| provider | string | Provedor de IA |
+| cost | decimal | Custo da requisição |
+| context | json | Contexto da conversa |
+| uuid | uuid | UUID único da requisição |
 | created_at | timestamp | Data de criação |
 | updated_at | timestamp | Data de atualização |
 
 ### 📋 Tabela: `logs`
-**Registros:** 0 (vazio)
+**Registros:** Variável
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
@@ -150,7 +182,9 @@
 | user_id | integer | ID do usuário |
 | company_id | integer | ID da empresa (nullable) |
 | action | string | Ação realizada |
-| description | text | Descrição detalhada |
+| resource_type | string | Tipo do recurso |
+| resource_id | integer | ID do recurso |
+| data | json | Dados adicionais |
 | ip_address | string | IP do usuário |
 | user_agent | string | User agent |
 | created_at | timestamp | Data do evento |
@@ -238,12 +272,34 @@ php artisan tinker
 
 ### Backup do Banco
 ```bash
-cp database/database.sqlite database/backup_$(date +%Y%m%d_%H%M%S).sqlite
+# Usando pg_dump
+pg_dump -U postgres -d viviurka_contabil > backup.sql
+
+# Ou usando Docker
+docker-compose exec postgres pg_dump -U postgres viviurka_contabil > backup.sql
+```
+
+### Restore do Banco
+```bash
+# Usando psql
+psql -U postgres -d viviurka_contabil < backup.sql
+
+# Ou usando Docker
+docker-compose exec -T postgres psql -U postgres viviurka_contabil < backup.sql
 ```
 
 ### Ver Informações do Banco
 ```bash
 php artisan db:show
+```
+
+### Conectar ao PostgreSQL
+```bash
+# Usando psql
+psql -U postgres -d viviurka_contabil
+
+# Ou usando Docker
+docker-compose exec postgres psql -U postgres -d viviurka_contabil
 ```
 
 ---
@@ -264,7 +320,7 @@ User::where('role', 'master')->get(['name', 'email'])
 
 ### Listar Empresas Ativas
 ```php
-Company::where('status', 'active')->get(['name', 'cnpj'])
+Company::where('ativo', true)->get(['razao_social', 'cnpj'])
 ```
 
 ### Buscar Usuário por Email
@@ -303,7 +359,7 @@ $company->invoices  // Retorna todas as notas fiscais
 
 ### Company -> Boletos
 ```php
-$company->boletos  // Retorna todos os boletos
+$company->boletos  // Retorna todas as cobranças
 ```
 
 ---
@@ -311,10 +367,13 @@ $company->boletos  // Retorna todos os boletos
 ## ⚠️ Importante
 
 1. **Senhas**: Todas as senhas de teste são **"password"**
-2. **SQLite**: Banco de dados em arquivo único
+2. **PostgreSQL**: Banco de dados relacional robusto
 3. **Soft Deletes**: Tabelas principais usam soft delete (não deletam fisicamente)
 4. **Seeders**: Sempre recriam dados ao rodar `migrate:fresh --seed`
-5. **Backup**: Faça backup antes de resetar o banco
+5. **Backup**: Faça backup regularmente do banco de dados
+6. **SSL**: Use SSL para conexões em produção (`DB_SSLMODE=require`)
+7. **Connection Pooling**: Configure connection pooling para alta performance
+8. **Indexes**: Verifique se os índices estão criados corretamente
 
 ---
 
@@ -328,5 +387,46 @@ $company->boletos  // Retorna todos os boletos
 
 ---
 
-**Última atualização:** 13 de Novembro de 2025
+## 🌐 Configuração do PostgreSQL
 
+### Variáveis de Ambiente
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+DB_DATABASE=viviurka_contabil
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_SSLMODE=prefer
+```
+
+### Conexão com Docker
+
+```bash
+# Conectar ao PostgreSQL
+docker-compose exec postgres psql -U postgres -d viviurka_contabil
+
+# Listar bancos de dados
+docker-compose exec postgres psql -U postgres -c "\l"
+
+# Listar tabelas
+docker-compose exec postgres psql -U postgres -d viviurka_contabil -c "\dt"
+
+# Ver estrutura de uma tabela
+docker-compose exec postgres psql -U postgres -d viviurka_contabil -c "\d users"
+```
+
+### Backup e Restore
+
+```bash
+# Backup
+docker-compose exec postgres pg_dump -U postgres viviurka_contabil > backup.sql
+
+# Restore
+docker-compose exec -T postgres psql -U postgres viviurka_contabil < backup.sql
+```
+
+---
+
+**Última atualização:** 14 de Novembro de 2025

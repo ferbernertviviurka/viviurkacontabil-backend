@@ -1,0 +1,76 @@
+services:
+  - type: web
+    name: viviurka-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Render will automatically set PORT env var, and we use it in the command
+    dockerCommand: sh -c "php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
+    plan: starter
+    healthCheckPath: /up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: AUTO_MIGRATE
+        value: true
+      - key: RENDER
+        value: true
+      - key: QUEUE_CONNECTION
+        value: database
+      # DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD will be automatically set by Render
+      # when you link the PostgreSQL database to this service
+    autoDeploy: true
+
+  - type: pgsql
+    name: viviurka-postgres
+    plan: starter
+    databaseName: viviurka_contabil
+    user: viviurka_user
+
+  - type: worker
+    name: viviurka-queue
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    dockerCommand: php artisan queue:work --tries=3 --timeout=90 --sleep=3
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: RENDER
+        value: true
+      # DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD will be automatically set by Render
+      # when you link the PostgreSQL database to this service
+
+  - type: worker
+    name: viviurka-scheduler
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    dockerCommand: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+      done"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: RENDER
+        value: true
+      # DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD will be automatically set by Render
+      # when you link the PostgreSQL database to this service

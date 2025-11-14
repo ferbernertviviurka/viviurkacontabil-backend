@@ -25,12 +25,12 @@ class BillingController extends Controller
         $startDate = $request->input('start_date', Carbon::now()->subMonths(11)->startOfMonth());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth());
 
-        // Get monthly payments grouped by month (SQLite compatible)
+        // Get monthly payments grouped by month (PostgreSQL compatible)
         $monthlyPayments = MonthlyPayment::select(
-            DB::raw('strftime("%Y-%m", created_at) as mes'),
-            DB::raw('SUM(CASE WHEN status = "paid" THEN valor ELSE 0 END) as total_pago'),
-            DB::raw('SUM(CASE WHEN status = "pending" THEN valor ELSE 0 END) as total_pendente'),
-            DB::raw('SUM(CASE WHEN status = "overdue" THEN valor ELSE 0 END) as total_vencido'),
+            DB::raw("TO_CHAR(created_at, 'YYYY-MM') as mes"),
+            DB::raw('SUM(CASE WHEN status = \'paid\' THEN valor ELSE 0 END) as total_pago'),
+            DB::raw('SUM(CASE WHEN status = \'pending\' THEN valor ELSE 0 END) as total_pendente'),
+            DB::raw('SUM(CASE WHEN status = \'overdue\' THEN valor ELSE 0 END) as total_vencido'),
             DB::raw('COUNT(*) as total_cobrancas')
         )
         ->whereBetween('created_at', [$startDate, $endDate])
@@ -38,12 +38,12 @@ class BillingController extends Controller
         ->orderBy('mes')
         ->get();
 
-        // Get charges (boletos) grouped by month (SQLite compatible)
+        // Get charges (boletos) grouped by month (PostgreSQL compatible)
         $charges = Boleto::select(
-            DB::raw('strftime("%Y-%m", created_at) as mes'),
-            DB::raw('SUM(CASE WHEN status = "paid" THEN valor ELSE 0 END) as total_pago'),
-            DB::raw('SUM(CASE WHEN status = "pending" THEN valor ELSE 0 END) as total_pendente'),
-            DB::raw('SUM(CASE WHEN status = "overdue" THEN valor ELSE 0 END) as total_vencido'),
+            DB::raw("TO_CHAR(created_at, 'YYYY-MM') as mes"),
+            DB::raw('SUM(CASE WHEN status = \'paid\' THEN valor ELSE 0 END) as total_pago'),
+            DB::raw('SUM(CASE WHEN status = \'pending\' THEN valor ELSE 0 END) as total_pendente'),
+            DB::raw('SUM(CASE WHEN status = \'overdue\' THEN valor ELSE 0 END) as total_vencido'),
             DB::raw('COUNT(*) as total_cobrancas')
         )
         ->whereBetween('created_at', [$startDate, $endDate])
@@ -63,21 +63,21 @@ class BillingController extends Controller
                 'mes' => $mes,
                 'mes_formatado' => Carbon::createFromFormat('Y-m', $mes)->format('M/Y'),
                 'mensalidades' => [
-                    'total_pago' => $monthly->total_pago ?? 0,
-                    'total_pendente' => $monthly->total_pendente ?? 0,
-                    'total_vencido' => $monthly->total_vencido ?? 0,
-                    'total_cobrancas' => $monthly->total_cobrancas ?? 0,
+                    'total_pago' => (float) ($monthly->total_pago ?? 0),
+                    'total_pendente' => (float) ($monthly->total_pendente ?? 0),
+                    'total_vencido' => (float) ($monthly->total_vencido ?? 0),
+                    'total_cobrancas' => (int) ($monthly->total_cobrancas ?? 0),
                 ],
                 'cobrancas' => [
-                    'total_pago' => $charge->total_pago ?? 0,
-                    'total_pendente' => $charge->total_pendente ?? 0,
-                    'total_vencido' => $charge->total_vencido ?? 0,
-                    'total_cobrancas' => $charge->total_cobrancas ?? 0,
+                    'total_pago' => (float) ($charge->total_pago ?? 0),
+                    'total_pendente' => (float) ($charge->total_pendente ?? 0),
+                    'total_vencido' => (float) ($charge->total_vencido ?? 0),
+                    'total_cobrancas' => (int) ($charge->total_cobrancas ?? 0),
                 ],
                 'total_geral' => [
-                    'pago' => ($monthly->total_pago ?? 0) + ($charge->total_pago ?? 0),
-                    'pendente' => ($monthly->total_pendente ?? 0) + ($charge->total_pendente ?? 0),
-                    'vencido' => ($monthly->total_vencido ?? 0) + ($charge->total_vencido ?? 0),
+                    'pago' => (float) (($monthly->total_pago ?? 0) + ($charge->total_pago ?? 0)),
+                    'pendente' => (float) (($monthly->total_pendente ?? 0) + ($charge->total_pendente ?? 0)),
+                    'vencido' => (float) (($monthly->total_vencido ?? 0) + ($charge->total_vencido ?? 0)),
                 ],
             ];
         }

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,13 +14,15 @@ return new class extends Migration
     {
         if (!Schema::hasColumn('ai_requests', 'uuid')) {
             Schema::table('ai_requests', function (Blueprint $table) {
-                $table->string('uuid')->nullable()->after('id');
+                // Use string for UUID in PostgreSQL (more compatible)
+                $table->string('uuid', 36)->nullable()->after('id');
             });
         }
 
         if (!Schema::hasColumn('ai_requests', 'conversation_uuid')) {
             Schema::table('ai_requests', function (Blueprint $table) {
-                $table->string('conversation_uuid')->nullable()->after('uuid');
+                // Use string for UUID in PostgreSQL (more compatible)
+                $table->string('conversation_uuid', 36)->nullable()->after('uuid');
             });
         }
 
@@ -31,7 +34,8 @@ return new class extends Migration
 
         if (!Schema::hasColumn('ai_requests', 'context')) {
             Schema::table('ai_requests', function (Blueprint $table) {
-                $table->text('context')->nullable();
+                // Use jsonb for PostgreSQL (better performance) or json
+                $table->json('context')->nullable();
             });
         }
 
@@ -42,12 +46,32 @@ return new class extends Migration
             }
         });
 
-        // Make UUID unique if not already
-        if (!Schema::hasColumn('ai_requests', 'uuid') || !\Illuminate\Support\Facades\DB::select("SELECT name FROM sqlite_master WHERE type='index' AND name='ai_requests_uuid_unique'")) {
-            Schema::table('ai_requests', function (Blueprint $table) {
-                $table->string('uuid')->nullable(false)->change();
-                $table->unique('uuid');
-            });
+        // Make UUID unique if not already (PostgreSQL compatible)
+        try {
+            if (Schema::hasColumn('ai_requests', 'uuid')) {
+                // Check if unique index already exists (PostgreSQL)
+                $indexExists = DB::select("
+                    SELECT COUNT(*) as count
+                    FROM pg_indexes 
+                    WHERE tablename = 'ai_requests' 
+                    AND indexname = 'ai_requests_uuid_unique'
+                ");
+                
+                if (empty($indexExists) || $indexExists[0]->count == 0) {
+                    Schema::table('ai_requests', function (Blueprint $table) {
+                        $table->string('uuid', 36)->nullable(false)->change();
+                        $table->unique('uuid', 'ai_requests_uuid_unique');
+                    });
+                } else {
+                    // Index exists, just make sure uuid is not null
+                    Schema::table('ai_requests', function (Blueprint $table) {
+                        $table->string('uuid', 36)->nullable(false)->change();
+                    });
+                }
+            }
+        } catch (\Exception $e) {
+            // Index might already exist or column doesn't exist, ignore
+            echo "Warning: Could not create unique index on uuid: " . $e->getMessage() . "\n";
         }
     }
 
@@ -57,8 +81,24 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ai_requests', function (Blueprint $table) {
-            $table->dropColumn(['uuid', 'conversation_uuid', 'provider', 'context']);
+            if (Schema::hasColumn('ai_requests', 'uuid')) {
+                // Drop unique index if exists
+                try {
+                    DB::statement('DROP INDEX IF EXISTS ai_requests_uuid_unique');
+                } catch (\Exception $e) {
+                    // Ignore if index doesn't exist
+                }
+                $table->dropColumn('uuid');
+            }
+            if (Schema::hasColumn('ai_requests', 'conversation_uuid')) {
+                $table->dropColumn('conversation_uuid');
+            }
+            if (Schema::hasColumn('ai_requests', 'provider')) {
+                $table->dropColumn('provider');
+            }
+            if (Schema::hasColumn('ai_requests', 'context')) {
+                $table->dropColumn('context');
+            }
         });
     }
 };
-

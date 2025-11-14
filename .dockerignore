@@ -1,0 +1,64 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Laravel
+# Don't exclude vendor entirely - it will be installed in the container
+# /vendor
+/storage/*.key
+# Don't exclude logs directory structure - just the files
+/storage/logs/*.log
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/bootstrap/cache/*.php
+
+# Testing
+.phpunit.result.cache
+/coverage
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.local
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+
+# Documentation
+README.md
+*.md
+!CRON_JOBS.md
+!DATABASE.md
+
+# Docker
+# Don't exclude docker directory - it contains entrypoint and nginx config
+# Dockerfile*
+# docker-compose*
+# .dockerignore
+
+# Misc
+*.log
+*.cache
+
