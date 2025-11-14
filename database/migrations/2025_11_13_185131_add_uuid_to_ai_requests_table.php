@@ -80,25 +80,17 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop unique constraint if exists (not just the index)
+        DB::statement('ALTER TABLE ai_requests DROP CONSTRAINT IF EXISTS ai_requests_uuid_unique');
+
+        // Drop columns
         Schema::table('ai_requests', function (Blueprint $table) {
-            if (Schema::hasColumn('ai_requests', 'uuid')) {
-                // Drop unique index if exists
-                try {
-                    DB::statement('DROP INDEX IF EXISTS ai_requests_uuid_unique');
-                } catch (\Exception $e) {
-                    // Ignore if index doesn't exist
-                }
-                $table->dropColumn('uuid');
-            }
-            if (Schema::hasColumn('ai_requests', 'conversation_uuid')) {
-                $table->dropColumn('conversation_uuid');
-            }
-            if (Schema::hasColumn('ai_requests', 'provider')) {
-                $table->dropColumn('provider');
-            }
-            if (Schema::hasColumn('ai_requests', 'context')) {
-                $table->dropColumn('context');
-            }
+            $table->dropColumn([
+                'uuid',
+                'conversation_uuid',
+                'provider',
+                'context',
+            ]);
         });
     }
 };
